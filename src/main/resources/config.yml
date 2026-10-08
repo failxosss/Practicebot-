@@ -1,0 +1,59 @@
+# ===== PracticeBot =====
+# Odpocet pred zacatkem souboje (sekundy)
+countdown-seconds: 3
+
+# Jmeno bota nad hlavou. Pouzij {difficulty} pro obtiznost. Barvy pres &
+bot-name: "&cBot &7({difficulty})"
+
+# Skin bota (nick hrace s existujicim skinem). Prazdne = vychozi skin.
+bot-skin: ""
+
+# Prikazy povolene behem souboje (krome /pbot)
+allowed-commands: []
+
+# Ladeni obtiznosti
+#  reach          - na jakou vzdalenost bot utoci (bloky)
+#  cps            - kolikrat za vterinu se bot pokusi udeřit
+#  accuracy       - sance, ze se pokus trefi (0.0 - 1.0)
+#  speed          - rychlost pohybu (1.0 = bezna chuze)
+#  strafe-chance  - sance, ze bot strafuje okolo hrace
+#  jump-chance    - sance na skok (crit) za tick, kdyz je blizko
+#  heal-below     - pod kolik HP se bot leci (NoDebuff/Gapple kit)
+#  heal-cooldown  - pauza mezi leceni (sekundy)
+difficulties:
+  NORMAL:
+    reach: 2.8
+    cps: 4.0
+    accuracy: 0.50
+    speed: 0.95
+    strafe-chance: 0.3
+    jump-chance: 0.0
+    heal-below: 6.0
+    heal-cooldown: 6.0
+  MEDIUM:
+    reach: 3.0
+    cps: 6.0
+    accuracy: 0.65
+    speed: 1.05
+    strafe-chance: 0.5
+    jump-chance: 0.0
+    heal-below: 7.0
+    heal-cooldown: 5.0
+  HARD:
+    reach: 3.2
+    cps: 8.0
+    accuracy: 0.80
+    speed: 1.15
+    strafe-chance: 0.7
+    jump-chance: 0.01
+    heal-below: 8.0
+    heal-cooldown: 4.0
+  PROFESSIONAL:
+    reach: 3.4
+    cps: 11.0
+    accuracy: 0.92
+    speed: 1.25
+    strafe-chance: 0.9
+    jump-chance: 0.03
+    heal-below: 9.0
+    heal-cooldown: 3.0

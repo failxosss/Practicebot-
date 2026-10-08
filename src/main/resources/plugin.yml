@@ -1,0 +1,21 @@
+name: PracticeBot
+version: ${project.version}
+main: dev.practicebot.PracticeBotPlugin
+api-version: '1.20'
+description: Treninkovy bot, ktery se chova jako hrac. Kity, obtiznosti, areny a izolovane souboje.
+authors: [PracticeBot]
+depend: [Citizens]
+
+commands:
+  pbot:
+    description: Hlavni prikaz PracticeBotu
+    aliases: [practicebot, pb]
+    usage: /<command> [play|leave|kits|arena|reload]
+
+permissions:
+  practicebot.play:
+    description: Pouzivani GUI a /pbot play
+    default: true
+  practicebot.admin:
+    description: Spravce arén a reload
+    default: op

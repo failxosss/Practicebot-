@@ -10,8 +10,8 @@ Minecraft plugin (Paper), který přidá **tréninkového bota**, jenž se chov�
 
 ## Požadavky
 
-- Java 17+
-- **Paper** 1.20.4+ (používá Paper API; Spigot nestačí)
+- Java 21+
+- **Paper** 1.21.11 (používá Paper API; Spigot nestačí)
 - **Citizens** (verze odpovídající tvé verzi MC)
 
 ## Instalace

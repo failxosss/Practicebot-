@@ -10,11 +10,11 @@
     <packaging>jar</packaging>
 
     <properties>
-        <maven.compiler.release>17</maven.compiler.release>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Zmen podle verze tveho serveru (Paper API + odpovidajici Citizens) -->
-        <paper.version>1.20.4-R0.1-SNAPSHOT</paper.version>
-        <citizens.version>2.0.33-SNAPSHOT</citizens.version>
+        <paper.version>1.21.11-R0.1-SNAPSHOT</paper.version>
+        <citizens.version>2.0.43-SNAPSHOT</citizens.version>
     </properties>
 
     <repositories>

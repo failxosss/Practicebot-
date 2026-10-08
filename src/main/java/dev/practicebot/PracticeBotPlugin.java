@@ -10,13 +10,14 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.File;
 
 public final class PracticeBotPlugin extends JavaPlugin {
-    private static final String PREFIX = "&8[&cPracticeBot&8] &r";
+    private static final String PREFIX = ChatColor.translateAlternateColorCodes('&', "&8[&cPracticeBot&8] &r");
     /** Bump this when config.yml changes in an incompatible way. */
-    private static final int CONFIG_VERSION = 2;
+    private static final int CONFIG_VERSION = 3;
 
     private ArenaManager arenas;
     private SessionManager sessions;
     private MenuManager menus;
+    private StatsManager stats;
 
     @Override
     public void onEnable() {
@@ -27,11 +28,13 @@ public final class PracticeBotPlugin extends JavaPlugin {
         }
         migrateConfig();
         reloadConfig();
+        Lang.init(this);
         Difficulty.loadAll(getConfig());
 
         arenas = new ArenaManager(this);
         sessions = new SessionManager(this);
         menus = new MenuManager(this);
+        stats = new StatsManager(this);
 
         Bukkit.getPluginManager().registerEvents(new SessionListener(this, sessions), this);
         Bukkit.getPluginManager().registerEvents(menus, this);
@@ -43,6 +46,11 @@ public final class PracticeBotPlugin extends JavaPlugin {
             cmd.setTabCompleter(handler);
         }
 
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new PapiHook(this).register();
+            getLogger().info("PlaceholderAPI found - placeholders registered (%practicebot_...%).");
+        }
+
         // load arenas only after the worlds are loaded
         Bukkit.getScheduler().runTask(this, () -> arenas.load());
         getLogger().info("PracticeBot enabled.");
@@ -51,6 +59,15 @@ public final class PracticeBotPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (sessions != null) sessions.endAll();
+        if (stats != null) stats.saveNow();
+    }
+
+    /** Reloads config, language files and arenas. */
+    public void reloadAll() {
+        reloadConfig();
+        Lang.init(this);
+        Difficulty.loadAll(getConfig());
+        arenas.load();
     }
 
     /** An outdated config.yml is moved to config-old.yml and a fresh one is generated. */
@@ -69,8 +86,15 @@ public final class PracticeBotPlugin extends JavaPlugin {
     public ArenaManager arenas() { return arenas; }
     public SessionManager sessions() { return sessions; }
     public MenuManager menus() { return menus; }
+    public StatsManager stats() { return stats; }
 
-    public void msg(CommandSender to, String text) {
-        to.sendMessage(ChatColor.translateAlternateColorCodes('&', PREFIX + text));
+    /** Sends a translated message (by language key) with the plugin prefix. */
+    public void msg(CommandSender to, String key, Object... kv) {
+        to.sendMessage(PREFIX + Lang.t(key, kv));
+    }
+
+    /** Sends an already translated/colored text with the plugin prefix. */
+    public void raw(CommandSender to, String text) {
+        to.sendMessage(PREFIX + text);
     }
 }

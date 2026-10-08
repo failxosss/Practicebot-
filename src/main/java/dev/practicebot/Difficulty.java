@@ -39,14 +39,18 @@ public enum Difficulty {
         this.healCooldown = healCooldown;
     }
 
-    public String displayName() { return displayName; }
+    /** Translated name (falls back to the English name). */
+    public String displayName() {
+        String s = Lang.t("difficulty." + name().toLowerCase());
+        return s.startsWith("difficulty.") ? displayName : s;
+    }
     public Material icon() { return icon; }
     public ChatColor color() { return color; }
 
     public static Difficulty fromString(String s) {
         if (s == null) return null;
         for (Difficulty d : values()) {
-            if (d.name().equalsIgnoreCase(s) || d.displayName.equalsIgnoreCase(s)) return d;
+            if (d.name().equalsIgnoreCase(s) || d.displayName.equalsIgnoreCase(s) || d.displayName().equalsIgnoreCase(s)) return d;
         }
         if (s.equalsIgnoreCase("pro")) return PROFESSIONAL;
         return null;

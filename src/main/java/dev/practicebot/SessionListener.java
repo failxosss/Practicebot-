@@ -1,6 +1,12 @@
 package dev.practicebot;
 
 import net.citizensnpcs.api.event.NPCSpawnEvent;
+import org.bukkit.Location;
+import org.bukkit.entity.EnderPearl;
+import org.bukkit.event.entity.PotionSplashEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -165,6 +171,60 @@ public final class SessionListener implements Listener {
         List<String> allowed = plugin.getConfig().getStringList("allowed-commands");
         for (String a : allowed) if (a.equalsIgnoreCase(label)) return;
         e.setCancelled(true);
-        plugin.msg(p, "&cYou cannot use commands during a fight. End it with &e/pbot leave&c.");
+        plugin.msg(p, "no-commands");
+    }
+
+    // ---------- projectiles: real splash potions and ender pearls ----------
+
+    /** Splash potions only affect their thrower (nobody can heal the opponent by accident). */
+    @EventHandler(ignoreCancelled = true)
+    public void onSplash(PotionSplashEvent e) {
+        ProjectileSource src = e.getEntity().getShooter();
+        if (!(src instanceof Entity shooter)) return;
+        boolean ours = sessions.byEntity(shooter) != null || (shooter instanceof Player sp && sessions.inSession(sp));
+        if (!ours) return;
+        for (org.bukkit.entity.LivingEntity le : e.getAffectedEntities()) {
+            if (!le.equals(shooter)) e.setIntensity(le, 0.0);
+        }
+    }
+
+    /** Projectiles of a fight are invisible for everybody except the fighter. */
+    @EventHandler
+    public void onLaunch(ProjectileLaunchEvent e) {
+        if (!(e.getEntity().getShooter() instanceof Entity shooter)) return;
+        BotSession bs = sessions.byEntity(shooter);
+        Player owner = bs != null ? bs.player() : (shooter instanceof Player sp && sessions.inSession(sp) ? sp : null);
+        if (owner == null) return;
+        for (Player o : Bukkit.getOnlinePlayers()) {
+            if (!o.equals(owner)) o.hideEntity(plugin, e.getEntity());
+        }
+    }
+
+    /** The bot's pearl: we cancel the vanilla teleport and move the NPC ourselves. */
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPearlHit(ProjectileHitEvent e) {
+        if (!(e.getEntity() instanceof EnderPearl pearl)) return;
+        if (!(pearl.getShooter() instanceof Entity shooter)) return;
+        BotSession bs = sessions.byEntity(shooter);
+        if (bs == null) return;
+        Location dest;
+        if (e.getHitBlock() != null && e.getHitBlockFace() != null) {
+            dest = e.getHitBlock().getRelative(e.getHitBlockFace()).getLocation().add(0.5, 0, 0.5);
+        } else if (e.getHitEntity() != null) {
+            dest = e.getHitEntity().getLocation();
+        } else {
+            dest = pearl.getLocation();
+        }
+        e.setCancelled(true);
+        pearl.remove();
+        bs.pearlLanded(dest);
+    }
+
+    // ---------- CPS counter ----------
+
+    @EventHandler
+    public void onSwing(PlayerAnimationEvent e) {
+        BotSession s = sessions.get(e.getPlayer());
+        if (s != null) s.recordClick();
     }
 }

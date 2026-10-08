@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public final class SessionManager {
     public enum Result { WIN, LOSS, LEFT, SHUTDOWN }
@@ -17,6 +18,8 @@ public final class SessionManager {
     private final PracticeBotPlugin plugin;
     private final NPCRegistry registry;
     private final Map<UUID, BotSession> sessions = new HashMap<>();
+    /** Players whose arena chunks are still loading. */
+    private final Set<UUID> starting = new HashSet<>();
     /** Pairs "a>b" for which we called hidePlayer (so we do not break other plugins' vanish). */
     private final Set<String> hiddenPairs = new HashSet<>();
 
@@ -51,20 +54,50 @@ public final class SessionManager {
         return null;
     }
 
+    /**
+     * Picks an arena and a random spawn pair, loads the chunks asynchronously (so a slow server never makes
+     * the player wait inside the fight) and only then teleports the player and starts the fight.
+     */
     public boolean start(Player p, Kit kit, Difficulty diff) {
-        if (inSession(p)) {
-            plugin.msg(p, "&cYou are already in a fight. End it with &e/pbot leave&c.");
+        UUID id = p.getUniqueId();
+        if (inSession(p) || starting.contains(id)) {
+            plugin.msg(p, "already-fighting");
             return false;
         }
         Arena arena = plugin.arenas().pickFor(kit, this);
         if (arena == null) {
-            plugin.msg(p, "&cThere is no arena for kit &e" + kit.displayName() + "&c yet.");
-            if (p.hasPermission("practicebot.admin")) {
-                plugin.msg(p, "&6Next step: &fstand in the arena and run &e/pbot arena create <name> " + kit.id());
-            }
+            plugin.msg(p, "no-arena", "kit", kit.displayName());
+            if (p.hasPermission("practicebot.admin")) plugin.msg(p, "no-arena-admin", "kit", kit.id());
             return false;
         }
-        BotSession s = new BotSession(plugin, this, p, arena, kit, diff);
+        SpawnPair pair = arena.randomPair();
+        List<ChunkHold.Ref> refs = ChunkHold.refs(pair);
+
+        CompletableFuture<Void> future;
+        try {
+            future = ChunkHold.load(plugin, refs);
+        } catch (Exception ex) {
+            plugin.getLogger().severe("Failed to load arena chunks: " + ex);
+            ChunkHold.release(plugin, refs);
+            plugin.msg(p, "start-failed");
+            return false;
+        }
+        starting.add(id);
+        if (!future.isDone()) plugin.msg(p, "preparing");
+        future.whenComplete((v, err) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            starting.remove(id);
+            if (err != null) plugin.getLogger().warning("Chunk preload reported an error: " + err);
+            if (!p.isOnline() || inSession(p)) {
+                ChunkHold.release(plugin, refs);
+                return;
+            }
+            launch(p, kit, diff, arena, pair, refs);
+        }));
+        return true;
+    }
+
+    private void launch(Player p, Kit kit, Difficulty diff, Arena arena, SpawnPair pair, List<ChunkHold.Ref> refs) {
+        BotSession s = new BotSession(plugin, this, p, arena, kit, diff, pair, refs);
         sessions.put(p.getUniqueId(), s);
         try {
             s.begin();
@@ -73,16 +106,15 @@ public final class SessionManager {
             ex.printStackTrace();
             sessions.remove(p.getUniqueId());
             s.cleanup();
-            plugin.msg(p, "&cThe fight could not be started (see console).");
+            plugin.msg(p, "start-failed");
             refreshVisibility();
-            return false;
+            return;
         }
         refreshVisibility();
         // Citizens may spawn the NPC with a small delay, so refresh once more
         Bukkit.getScheduler().runTaskLater(plugin, this::refreshVisibility, 5L);
-        plugin.msg(p, "&aFight: &e" + kit.displayName() + " &7| " + diff.color() + diff.displayName()
-                + " &7| arena &e" + arena.name());
-        return true;
+        plugin.msg(p, "fight-started", "kit", kit.displayName(),
+                "difficulty", diff.color() + diff.displayName(), "arena", arena.name());
     }
 
     public void end(BotSession s, Result result) {
@@ -92,17 +124,46 @@ public final class SessionManager {
         s.cleanup();
         refreshVisibility();
         if (!p.isOnline()) return;
+        String sub = ChatColor.GRAY + s.kit().displayName() + " | " + s.difficulty().displayName();
         switch (result) {
             case WIN -> {
-                p.sendTitle(ChatColor.GREEN + "YOU WON", ChatColor.GRAY + s.kit().displayName() + " | " + s.difficulty().displayName(), 5, 50, 10);
-                plugin.msg(p, "&aYou defeated the bot!");
+                plugin.stats().record(p, true);
+                p.sendTitle(ChatColor.GREEN + Lang.t("title.win"), sub, 5, 50, 10);
+                plugin.msg(p, "msg.win");
+                reward(p, s, true);
             }
             case LOSS -> {
-                p.sendTitle(ChatColor.RED + "YOU LOST", ChatColor.GRAY + "Try again", 5, 50, 10);
-                plugin.msg(p, "&cThe bot defeated you.");
+                plugin.stats().record(p, false);
+                p.sendTitle(ChatColor.RED + Lang.t("title.loss"), ChatColor.GRAY + Lang.t("sub.loss"), 5, 50, 10);
+                plugin.msg(p, "msg.loss");
+                reward(p, s, false);
             }
-            case LEFT -> plugin.msg(p, "&7Fight ended.");
+            case LEFT -> plugin.msg(p, "fight-ended");
             default -> { }
+        }
+    }
+
+    /** Runs the commands from config.yml (rewards.on-win / rewards.on-loss) as console. */
+    private void reward(Player p, BotSession s, boolean win) {
+        if (!plugin.getConfig().getBoolean("rewards.enabled", false)) return;
+        String path = win ? "rewards.on-win" : "rewards.on-loss";
+        List<String> cmds = new ArrayList<>();
+        cmds.addAll(plugin.getConfig().getStringList(path + ".ALL"));
+        cmds.addAll(plugin.getConfig().getStringList(path + "." + s.difficulty().name()));
+        cmds.addAll(plugin.getConfig().getStringList(path + "." + s.kit().name()));
+        int streak = plugin.stats().streakOf(p.getUniqueId());
+        for (String c : cmds) {
+            String cmd = c.replace("{player}", p.getName())
+                    .replace("{kit}", s.kit().id())
+                    .replace("{difficulty}", s.difficulty().name().toLowerCase())
+                    .replace("{streak}", String.valueOf(streak));
+            if (cmd.startsWith("/")) cmd = cmd.substring(1);
+            if (cmd.isBlank()) continue;
+            try {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+            } catch (Exception ex) {
+                plugin.getLogger().warning("Reward command failed: " + cmd + " (" + ex.getMessage() + ")");
+            }
         }
     }
 
@@ -118,7 +179,7 @@ public final class SessionManager {
         PlayerState st = PlayerState.load(f);
         if (st != null) {
             st.restore(p);
-            plugin.msg(p, "&7Your inventory from the interrupted fight was restored.");
+            plugin.msg(p, "restored");
         }
         f.delete();
     }

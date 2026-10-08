@@ -37,7 +37,11 @@ public enum Kit {
 
     public String displayName() { return displayName; }
     public Material icon() { return icon; }
-    public String description() { return description; }
+    /** Translated description (falls back to the English one). */
+    public String description() {
+        String s = Lang.t("kit." + id());
+        return s.startsWith("kit.") ? description : s;
+    }
     public HealType healType() { return healType; }
     public int botHealItems() { return botHealItems; }
     public double fallbackDamage() { return fallbackDamage; }
@@ -92,7 +96,7 @@ public enum Kit {
         p.updateInventory();
     }
 
-    private static ItemStack healingSplash() {
+    public static ItemStack healingSplash() {
         ItemStack pot = new ItemStack(Material.SPLASH_POTION);
         PotionMeta pm = (PotionMeta) pot.getItemMeta();
         pm.setBasePotionType(PotionType.STRONG_HEALING);

@@ -38,6 +38,17 @@ public final class ArenaManager {
                 continue;
             }
             Arena a = new Arena(key, kit, pl, bl, playerSet, botSet);
+            ConfigurationSection ex = s.getConfigurationSection("extras");
+            if (ex != null) {
+                for (String k : ex.getKeys(false)) {
+                    Object ep = ex.get(k + ".player");
+                    Object eb = ex.get(k + ".bot");
+                    if (ep instanceof Location el1 && eb instanceof Location el2) {
+                        SpawnPair pair = new SpawnPair(el1, el2);
+                        if (pair.valid()) a.addExtra(pair);
+                    }
+                }
+            }
             if (!a.isReady()) {
                 plugin.getLogger().warning("Arena '" + key + "' is not finished yet - players cannot use it. Run /pbot arena list for the next step.");
             }
@@ -54,6 +65,12 @@ public final class ArenaManager {
             y.set(a.name() + ".bot", a.botSpawn());
             y.set(a.name() + ".player-set", a.isPlayerSet());
             y.set(a.name() + ".bot-set", a.isBotSet());
+            int i = 0;
+            for (SpawnPair p : a.extras()) {
+                y.set(a.name() + ".extras." + i + ".player", p.player());
+                y.set(a.name() + ".extras." + i + ".bot", p.bot());
+                i++;
+            }
         }
         try {
             y.save(file);
@@ -78,6 +95,21 @@ public final class ArenaManager {
         List<Arena> out = new ArrayList<>();
         for (Arena a : arenas.values()) if (a.kit() == kit && a.isReady()) out.add(a);
         return out;
+    }
+
+    /** Warms up the chunks of all arenas of a kit (called when the player opens the difficulty menu). */
+    public void prefetch(Kit kit) {
+        try {
+            for (Arena a : forKit(kit)) {
+                for (SpawnPair pair : a.allPairs()) {
+                    List<ChunkHold.Ref> refs = ChunkHold.refs(pair);
+                    ChunkHold.load(plugin, refs);
+                    org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> ChunkHold.release(plugin, refs), 600L);
+                }
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Chunk prefetch failed: " + ex.getMessage());
+        }
     }
 
     /** Picks the arena for the given kit with the fewest active fights. */

@@ -1,6 +1,15 @@
 # ===== PracticeBot =====
 # Internal version, do not change. An older config.yml is backed up to config-old.yml automatically.
-config-version: 2
+config-version: 3
+
+# Language of all messages and menus. Available:
+#  en, cs, sk, de, es, fr, it, pt, pl, ru, uk, nl, sv, tr, ja, ko, zh, hu, ro, da
+# The files are in plugins/PracticeBot/lang/ - you can edit them (missing keys fall back to the built-in text).
+# Use /pbot reload after changing anything there.
+language: en
+
+# Show a sidebar (time, bot HP, your HP, your CPS, win streak) during a fight
+scoreboard: true
 
 # Countdown before the fight starts (seconds)
 countdown-seconds: 3
@@ -68,3 +77,17 @@ difficulties:
     jump-chance: 0.12
     heal-below: 9.0
     heal-cooldown: 3.0
+
+# Rewards (console commands). Placeholders: {player} {kit} {difficulty} {streak}
+# Under on-win / on-loss use: ALL, a difficulty (NORMAL, MEDIUM, HARD, PROFESSIONAL) or a kit (SWORD, AXE, NODEBUFF, GAPPLE).
+# Example:  PROFESSIONAL: ["give {player} diamond 1", "eco give {player} 500"]
+rewards:
+  enabled: false
+  on-win:
+    ALL: []
+    NORMAL: []
+    MEDIUM: []
+    HARD: []
+    PROFESSIONAL: []
+  on-loss:
+    ALL: []

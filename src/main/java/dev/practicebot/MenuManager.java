@@ -39,7 +39,7 @@ public final class MenuManager implements Listener {
 
     public void openKits(Player p) {
         MenuHolder h = new MenuHolder(Type.KIT, null);
-        Inventory inv = Bukkit.createInventory(h, 27, ChatColor.DARK_GRAY + "PracticeBot " + ChatColor.GRAY + "- select kit");
+        Inventory inv = Bukkit.createInventory(h, 27, Lang.t("gui.kit-title"));
         h.inv = inv;
         fill(inv);
         Kit[] kits = Kit.values();
@@ -49,8 +49,8 @@ public final class MenuManager implements Listener {
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + k.description());
             lore.add("");
-            lore.add((arenas > 0 ? ChatColor.GREEN : ChatColor.RED) + "Arenas: " + arenas);
-            lore.add(ChatColor.YELLOW + "Click to select");
+            lore.add(Lang.t("gui.arenas", "color", arenas > 0 ? "&a" : "&c", "count", arenas));
+            lore.add(Lang.t("gui.click-select"));
             inv.setItem(SLOTS[i], item(k.icon(), ChatColor.AQUA + "" + ChatColor.BOLD + k.displayName(), lore));
         }
         p.openInventory(inv);
@@ -58,21 +58,21 @@ public final class MenuManager implements Listener {
 
     public void openDifficulties(Player p, Kit kit) {
         MenuHolder h = new MenuHolder(Type.DIFFICULTY, kit);
-        Inventory inv = Bukkit.createInventory(h, 27, ChatColor.DARK_GRAY + kit.displayName() + ChatColor.GRAY + " - difficulty");
+        Inventory inv = Bukkit.createInventory(h, 27, Lang.t("gui.diff-title", "kit", kit.displayName()));
         h.inv = inv;
         fill(inv);
         Difficulty[] ds = Difficulty.values();
         for (int i = 0; i < ds.length && i < SLOTS.length; i++) {
             Difficulty d = ds[i];
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Accuracy: " + ChatColor.WHITE + (int) (d.accuracy * 100) + "%");
-            lore.add(ChatColor.GRAY + "CPS: " + ChatColor.WHITE + d.cps);
-            lore.add(ChatColor.GRAY + "Reach: " + ChatColor.WHITE + d.reach);
+            lore.add(Lang.t("gui.accuracy", "v", (int) (d.accuracy * 100)));
+            lore.add(Lang.t("gui.cps", "v", d.cps));
+            lore.add(Lang.t("gui.reach", "v", d.reach));
             lore.add("");
-            lore.add(ChatColor.YELLOW + "Click to start");
+            lore.add(Lang.t("gui.click-start"));
             inv.setItem(SLOTS[i], item(d.icon(), d.color() + "" + ChatColor.BOLD + d.displayName(), lore));
         }
-        inv.setItem(BACK_SLOT, item(Material.ARROW, ChatColor.RED + "Back", List.of()));
+        inv.setItem(BACK_SLOT, item(Material.ARROW, Lang.t("gui.back"), List.of()));
         p.openInventory(inv);
     }
 
@@ -89,9 +89,10 @@ public final class MenuManager implements Listener {
             for (int i = 0; i < kits.length && i < SLOTS.length; i++) {
                 if (SLOTS[i] == slot) {
                     if (plugin.arenas().forKit(kits[i]).isEmpty()) {
-                        plugin.msg(p, "&cThere is no arena for kit &e" + kits[i].displayName() + "&c yet.");
+                        plugin.msg(p, "no-arena", "kit", kits[i].displayName());
                         return;
                     }
+                    plugin.arenas().prefetch(kits[i]); // warm up the arena chunks while the player picks a difficulty
                     openDifficulties(p, kits[i]);
                     return;
                 }

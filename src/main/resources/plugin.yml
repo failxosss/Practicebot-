@@ -3,7 +3,7 @@ version: ${project.version}
 main: dev.practicebot.PracticeBotPlugin
 api-version: '1.20'
 description: Treninkovy bot, ktery se chova jako hrac. Kity, obtiznosti, areny a izolovane souboje.
-authors: [PracticeBot]
+authors: Failxos
 depend: [Citizens]
 
 commands:

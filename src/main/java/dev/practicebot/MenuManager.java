@@ -16,7 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.ArrayList;
 import java.util.List;
 
-/** GUI: 1) vyber kitu  2) vyber obtiznosti. */
+/** GUI: 1) kit selection  2) difficulty selection. */
 public final class MenuManager implements Listener {
     private static final int[] SLOTS = {10, 12, 14, 16};
     private static final int BACK_SLOT = 22;
@@ -39,7 +39,7 @@ public final class MenuManager implements Listener {
 
     public void openKits(Player p) {
         MenuHolder h = new MenuHolder(Type.KIT, null);
-        Inventory inv = Bukkit.createInventory(h, 27, ChatColor.DARK_GRAY + "PracticeBot " + ChatColor.GRAY + "- vyber kit");
+        Inventory inv = Bukkit.createInventory(h, 27, ChatColor.DARK_GRAY + "PracticeBot " + ChatColor.GRAY + "- select kit");
         h.inv = inv;
         fill(inv);
         Kit[] kits = Kit.values();
@@ -49,8 +49,8 @@ public final class MenuManager implements Listener {
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + k.description());
             lore.add("");
-            lore.add((arenas > 0 ? ChatColor.GREEN : ChatColor.RED) + "Arény: " + arenas);
-            lore.add(ChatColor.YELLOW + "Klikni pro vyber");
+            lore.add((arenas > 0 ? ChatColor.GREEN : ChatColor.RED) + "Arenas: " + arenas);
+            lore.add(ChatColor.YELLOW + "Click to select");
             inv.setItem(SLOTS[i], item(k.icon(), ChatColor.AQUA + "" + ChatColor.BOLD + k.displayName(), lore));
         }
         p.openInventory(inv);
@@ -58,21 +58,21 @@ public final class MenuManager implements Listener {
 
     public void openDifficulties(Player p, Kit kit) {
         MenuHolder h = new MenuHolder(Type.DIFFICULTY, kit);
-        Inventory inv = Bukkit.createInventory(h, 27, ChatColor.DARK_GRAY + kit.displayName() + ChatColor.GRAY + " - obtiznost");
+        Inventory inv = Bukkit.createInventory(h, 27, ChatColor.DARK_GRAY + kit.displayName() + ChatColor.GRAY + " - difficulty");
         h.inv = inv;
         fill(inv);
         Difficulty[] ds = Difficulty.values();
         for (int i = 0; i < ds.length && i < SLOTS.length; i++) {
             Difficulty d = ds[i];
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Presnost: " + ChatColor.WHITE + (int) (d.accuracy * 100) + "%");
+            lore.add(ChatColor.GRAY + "Accuracy: " + ChatColor.WHITE + (int) (d.accuracy * 100) + "%");
             lore.add(ChatColor.GRAY + "CPS: " + ChatColor.WHITE + d.cps);
-            lore.add(ChatColor.GRAY + "Dosah: " + ChatColor.WHITE + d.reach);
+            lore.add(ChatColor.GRAY + "Reach: " + ChatColor.WHITE + d.reach);
             lore.add("");
-            lore.add(ChatColor.YELLOW + "Klikni pro start");
+            lore.add(ChatColor.YELLOW + "Click to start");
             inv.setItem(SLOTS[i], item(d.icon(), d.color() + "" + ChatColor.BOLD + d.displayName(), lore));
         }
-        inv.setItem(BACK_SLOT, item(Material.ARROW, ChatColor.RED + "Zpet", List.of()));
+        inv.setItem(BACK_SLOT, item(Material.ARROW, ChatColor.RED + "Back", List.of()));
         p.openInventory(inv);
     }
 
@@ -89,7 +89,7 @@ public final class MenuManager implements Listener {
             for (int i = 0; i < kits.length && i < SLOTS.length; i++) {
                 if (SLOTS[i] == slot) {
                     if (plugin.arenas().forKit(kits[i]).isEmpty()) {
-                        plugin.msg(p, "&cPro kit &e" + kits[i].displayName() + "&c zatim neni arena.");
+                        plugin.msg(p, "&cThere is no arena for kit &e" + kits[i].displayName() + "&c yet.");
                         return;
                     }
                     openDifficulties(p, kits[i]);

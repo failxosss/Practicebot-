@@ -10,12 +10,12 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionType;
 import org.bukkit.entity.Player;
 
-/** Definice kitu. Hrac i bot dostanou stejnou vybavu. */
+/** Kit definitions. The player and the bot get the same equipment. */
 public enum Kit {
-    SWORD("Sword", Material.DIAMOND_SWORD, "Klasicky souboj s diamantovym mecem", HealType.NONE, 0, 7.0),
-    AXE("Axe", Material.DIAMOND_AXE, "Souboj se sekerou (vetsi damage, pomalejsi)", HealType.NONE, 0, 9.0),
-    NODEBUFF("NoDebuff", Material.SPLASH_POTION, "Diamant + splash healing potiony", HealType.POTION, 12, 7.0),
-    GAPPLE("Gapple", Material.GOLDEN_APPLE, "Diamant + zlata jablka", HealType.GAPPLE, 8, 7.0);
+    SWORD("Sword", Material.DIAMOND_SWORD, "Classic fight with a diamond sword", HealType.NONE, 0, 7.0),
+    AXE("Axe", Material.DIAMOND_AXE, "Axe fight (more damage, slower)", HealType.NONE, 0, 9.0),
+    NODEBUFF("NoDebuff", Material.SPLASH_POTION, "Diamond gear + splash healing potions", HealType.POTION, 12, 7.0),
+    GAPPLE("Gapple", Material.GOLDEN_APPLE, "Diamond gear + golden apples", HealType.GAPPLE, 8, 7.0);
 
     public enum HealType { NONE, POTION, GAPPLE }
 
@@ -51,14 +51,14 @@ public enum Kit {
         return null;
     }
 
-    // ---- vybava ----
+    // ---- equipment ----
 
     public ItemStack weapon() {
         Material m = this == AXE ? Material.DIAMOND_AXE : Material.DIAMOND_SWORD;
         return piece(m, 0);
     }
 
-    /** Poradi pro setArmorContents: boots, leggings, chestplate, helmet. */
+    /** Order for setArmorContents: boots, leggings, chestplate, helmet. */
     public ItemStack[] armor() {
         boolean diamond = this == NODEBUFF || this == GAPPLE;
         int prot = diamond ? 2 : 0;

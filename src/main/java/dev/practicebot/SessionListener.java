@@ -27,7 +27,7 @@ public final class SessionListener implements Listener {
         this.sessions = sessions;
     }
 
-    // ---------- izolace damage ----------
+    // ---------- damage isolation ----------
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onHit(EntityDamageByEntityEvent e) {
@@ -38,22 +38,22 @@ public final class SessionListener implements Listener {
         BotSession victimBot = sessions.byEntity(victim);
         BotSession damagerBot = sessions.byEntity(damager);
 
-        // bot smi dostat damage jen od svého majitele
+        // the bot can only be damaged by its owner
         if (victimBot != null) {
             if (!damager.equals(victimBot.player())) e.setCancelled(true);
             return;
         }
-        // bot smi bit jen sveho majitele
+        // the bot can only hit its owner
         if (damagerBot != null) {
             if (!victim.equals(damagerBot.player())) e.setCancelled(true);
             return;
         }
-        // hrac v souboji nesmi bit nikoho jineho; nikdo jiny nesmi bit hrace v souboji
+        // a player in a fight cannot hit anyone else; nobody else can hit a player in a fight
         if (damager instanceof Player dp && sessions.inSession(dp)) e.setCancelled(true);
         if (victim instanceof Player vp && sessions.inSession(vp)) e.setCancelled(true);
     }
 
-    // ---------- smrt = konec souboje (bez death screenu) ----------
+    // ---------- death = end of the fight (no death screen) ----------
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onLethal(EntityDamageEvent e) {
@@ -89,7 +89,7 @@ public final class SessionListener implements Listener {
         }
     }
 
-    // ---------- pripojeni / odpojeni ----------
+    // ---------- join / quit ----------
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
@@ -104,7 +104,7 @@ public final class SessionListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, sessions::refreshVisibility);
     }
 
-    // ---------- omezeni behem souboje ----------
+    // ---------- restrictions during a fight ----------
 
     @EventHandler
     public void onMove(PlayerMoveEvent e) {
@@ -149,7 +149,7 @@ public final class SessionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent e) {
-        // Zakaz teleportu mimo souboj (krome pluginu a ender pearlu)
+        // Block teleport commands during a fight (plugin teleports and ender pearls are allowed)
         if (!sessions.inSession(e.getPlayer())) return;
         PlayerTeleportEvent.TeleportCause c = e.getCause();
         if (c == PlayerTeleportEvent.TeleportCause.COMMAND) e.setCancelled(true);
@@ -165,6 +165,6 @@ public final class SessionListener implements Listener {
         List<String> allowed = plugin.getConfig().getStringList("allowed-commands");
         for (String a : allowed) if (a.equalsIgnoreCase(label)) return;
         e.setCancelled(true);
-        plugin.msg(p, "&cBehem souboje nemuzes pouzivat prikazy. Ukonci ho pres &e/pbot leave&c.");
+        plugin.msg(p, "&cYou cannot use commands during a fight. End it with &e/pbot leave&c.");
     }
 }

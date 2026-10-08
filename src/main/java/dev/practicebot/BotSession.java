@@ -18,7 +18,7 @@ import org.bukkit.util.Vector;
 import java.io.File;
 import java.util.concurrent.ThreadLocalRandom;
 
-/** Jeden souboj: hrac vs. jeho vlastni bot v arene. */
+/** One fight: a player vs. their own bot in an arena. */
 public final class BotSession {
     private final PracticeBotPlugin plugin;
     private final SessionManager manager;
@@ -40,6 +40,12 @@ public final class BotSession {
     private int strafeUntil;
     private int strafeDir;
     private int healItems;
+    private int nextJump;
+
+    // cached config values
+    private boolean sprintEnabled;
+    private double sprintMultiplier;
+    private boolean chaseJump;
 
     public BotSession(PracticeBotPlugin plugin, SessionManager manager, Player player, Arena arena, Kit kit, Difficulty diff) {
         this.plugin = plugin;
@@ -111,6 +117,10 @@ public final class BotSession {
             le.setCollidable(false);
         }
 
+        sprintEnabled = plugin.getConfig().getBoolean("bot-sprint", true);
+        sprintMultiplier = Math.max(1.0, plugin.getConfig().getDouble("sprint-speed-multiplier", 1.3));
+        chaseJump = plugin.getConfig().getBoolean("bot-chase-jump", true);
+
         healItems = kit.botHealItems();
         countdownTicks = Math.max(0, plugin.getConfig().getInt("countdown-seconds", 3)) * 20;
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 1L, 1L);
@@ -125,7 +135,7 @@ public final class BotSession {
             return;
         }
         Entity ent = botEntity();
-        if (!(ent instanceof LivingEntity bot)) return; // bot se zrovna (re)spawnuje
+        if (!(ent instanceof LivingEntity bot)) return; // the bot is (re)spawning right now
         tick++;
 
         if (countdownTicks > 0) {
@@ -159,17 +169,51 @@ public final class BotSession {
         tryHeal(bot);
 
         Navigator nav = npc.getNavigator();
-        if (dist > diff.reach - 0.4) {
+        boolean melee = dist <= diff.reach - 0.4;
+        updateSprint(bot, melee);
+
+        if (!melee) {
             if (!nav.isNavigating() || tick % 10 == 0) {
-                nav.getLocalParameters().speedModifier((float) diff.speed).range(60f);
+                float speed = (float) (diff.speed * (sprintEnabled ? sprintMultiplier : 1.0));
+                nav.getLocalParameters().speedModifier(speed).range(60f);
                 nav.setTarget(player, false);
             }
+            // bunny-hop while chasing, like a real player sprint-jumping
+            if (chaseJump && dist > 4.5) tryJump(bot, bl, pl, 0.10);
         } else {
             if (nav.isNavigating()) nav.cancelNavigation();
             strafe(bot, bl, pl, dist);
+            tryJump(bot, bl, pl, 0.05);
         }
 
         tryAttack(bot, dist);
+    }
+
+    /**
+     * Sprinting like a player: always sprint while moving/fighting (sprint hits deal extra knockback).
+     * While falling in melee the bot stops sprinting so the hit can be a critical hit (vanilla rule).
+     */
+    private void updateSprint(LivingEntity bot, boolean melee) {
+        if (!sprintEnabled || !(bot instanceof Player bp)) return;
+        boolean falling = !bot.isOnGround() && bot.getVelocity().getY() < 0;
+        bp.setSprinting(!(melee && falling));
+    }
+
+    /** Jumps (like a player would) with a small forward push toward the target. */
+    private void tryJump(LivingEntity bot, Location bl, Location pl, double forward) {
+        if (diff.jumpChance <= 0 || tick < nextJump || !bot.isOnGround()) return;
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        if (rnd.nextDouble() >= diff.jumpChance) return;
+        nextJump = tick + 10 + rnd.nextInt(10);
+
+        Vector toPlayer = pl.toVector().subtract(bl.toVector()).setY(0);
+        Vector v = bot.getVelocity();
+        if (toPlayer.lengthSquared() > 1.0E-4) {
+            toPlayer.normalize().multiply(forward);
+            v.add(toPlayer);
+        }
+        v.setY(0.42);
+        bot.setVelocity(v);
     }
 
     private void tryAttack(LivingEntity bot, double dist) {
@@ -199,13 +243,10 @@ public final class BotSession {
         Vector perp = new Vector(-toPlayer.getZ(), 0, toPlayer.getX());
 
         Vector add = perp.multiply(0.09 * strafeDir);
-        if (dist < 1.6) add.add(toPlayer.clone().multiply(-0.05)); // nelep se na hrace
+        if (dist < 1.6) add.add(toPlayer.clone().multiply(-0.05)); // do not stick to the player
         Vector v = bot.getVelocity().add(add);
         bot.setVelocity(v);
 
-        if (bot.isOnGround() && diff.jumpChance > 0 && rnd.nextDouble() < diff.jumpChance) {
-            bot.setVelocity(bot.getVelocity().setY(0.42)); // skok -> critical hit pri dopadu
-        }
     }
 
     private void tryHeal(LivingEntity bot) {
@@ -229,9 +270,9 @@ public final class BotSession {
         }
     }
 
-    // ---------- konec ----------
+    // ---------- end ----------
 
-    /** Uklid bota a vraceni hrace. Vola SessionManager. */
+    /** Removes the bot and restores the player. Called by SessionManager. */
     void cleanup() {
         ended = true;
         if (task != null) task.cancel();

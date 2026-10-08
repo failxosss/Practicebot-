@@ -30,14 +30,20 @@ public final class ArenaManager {
             Object b = s.get("bot");
             Location pl = p instanceof Location ? (Location) p : null;
             Location bl = b instanceof Location ? (Location) b : null;
-            Arena a = new Arena(key, kit, pl, bl);
-            if (!a.isReady()) {
-                plugin.getLogger().warning("Arena '" + key + "' neni kompletni (chybi svet/kit/spawn), preskakuji.");
+            // arenas saved by older versions have no flags -> they were fully configured
+            boolean playerSet = s.getBoolean("player-set", true);
+            boolean botSet = s.getBoolean("bot-set", true);
+            if (kit == null || pl == null || bl == null || pl.getWorld() == null || bl.getWorld() == null) {
+                plugin.getLogger().warning("Arena '" + key + "' is broken (missing world, kit or spawn), skipping.");
                 continue;
+            }
+            Arena a = new Arena(key, kit, pl, bl, playerSet, botSet);
+            if (!a.isReady()) {
+                plugin.getLogger().warning("Arena '" + key + "' is not finished yet - players cannot use it. Run /pbot arena list for the next step.");
             }
             arenas.put(key.toLowerCase(), a);
         }
-        plugin.getLogger().info("Nacteno arén: " + arenas.size());
+        plugin.getLogger().info("Loaded arenas: " + arenas.size());
     }
 
     public void save() {
@@ -46,11 +52,13 @@ public final class ArenaManager {
             y.set(a.name() + ".kit", a.kit().name());
             y.set(a.name() + ".player", a.playerSpawn());
             y.set(a.name() + ".bot", a.botSpawn());
+            y.set(a.name() + ".player-set", a.isPlayerSet());
+            y.set(a.name() + ".bot-set", a.isBotSet());
         }
         try {
             y.save(file);
         } catch (IOException e) {
-            plugin.getLogger().severe("Nelze ulozit arenas.yml: " + e.getMessage());
+            plugin.getLogger().severe("Could not save arenas.yml: " + e.getMessage());
         }
     }
 
@@ -65,13 +73,14 @@ public final class ArenaManager {
         return r;
     }
 
+    /** Only finished arenas for the given kit. */
     public List<Arena> forKit(Kit kit) {
         List<Arena> out = new ArrayList<>();
         for (Arena a : arenas.values()) if (a.kit() == kit && a.isReady()) out.add(a);
         return out;
     }
 
-    /** Vybere arenu pro dany kit s nejmene aktivnimi souboji. */
+    /** Picks the arena for the given kit with the fewest active fights. */
     public Arena pickFor(Kit kit, SessionManager sessions) {
         Arena best = null;
         int bestCount = Integer.MAX_VALUE;

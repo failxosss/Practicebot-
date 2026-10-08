@@ -17,12 +17,12 @@ public final class SessionManager {
     private final PracticeBotPlugin plugin;
     private final NPCRegistry registry;
     private final Map<UUID, BotSession> sessions = new HashMap<>();
-    /** Dvojice "a>b", u kterych jsme zavolali hidePlayer (abychom nerusili cizi vanish). */
+    /** Pairs "a>b" for which we called hidePlayer (so we do not break other plugins' vanish). */
     private final Set<String> hiddenPairs = new HashSet<>();
 
     public SessionManager(PracticeBotPlugin plugin) {
         this.plugin = plugin;
-        // Anonymni registr = boti se neukladaji do Citizens saves.yml
+        // Anonymous registry = bots are not saved to Citizens saves.yml
         this.registry = CitizensAPI.createAnonymousNPCRegistry(new MemoryNPCDataStore());
     }
 
@@ -53,12 +53,15 @@ public final class SessionManager {
 
     public boolean start(Player p, Kit kit, Difficulty diff) {
         if (inSession(p)) {
-            plugin.msg(p, "&cUz jsi v souboji. Ukonci ho pres &e/pbot leave&c.");
+            plugin.msg(p, "&cYou are already in a fight. End it with &e/pbot leave&c.");
             return false;
         }
         Arena arena = plugin.arenas().pickFor(kit, this);
         if (arena == null) {
-            plugin.msg(p, "&cPro kit &e" + kit.displayName() + "&c zatim neni zadna arena.");
+            plugin.msg(p, "&cThere is no arena for kit &e" + kit.displayName() + "&c yet.");
+            if (p.hasPermission("practicebot.admin")) {
+                plugin.msg(p, "&6Next step: &fstand in the arena and run &e/pbot arena create <name> " + kit.id());
+            }
             return false;
         }
         BotSession s = new BotSession(plugin, this, p, arena, kit, diff);
@@ -66,18 +69,18 @@ public final class SessionManager {
         try {
             s.begin();
         } catch (Exception ex) {
-            plugin.getLogger().severe("Start souboje selhal: " + ex);
+            plugin.getLogger().severe("Failed to start the fight: " + ex);
             ex.printStackTrace();
             sessions.remove(p.getUniqueId());
             s.cleanup();
-            plugin.msg(p, "&cSouboj se nepodarilo spustit (viz konzole).");
+            plugin.msg(p, "&cThe fight could not be started (see console).");
             refreshVisibility();
             return false;
         }
         refreshVisibility();
-        // NPC se u Citizens spawnuje i s malym zpozdenim, tak jeste jednou
+        // Citizens may spawn the NPC with a small delay, so refresh once more
         Bukkit.getScheduler().runTaskLater(plugin, this::refreshVisibility, 5L);
-        plugin.msg(p, "&aSouboj: &e" + kit.displayName() + " &7| " + diff.color() + diff.displayName()
+        plugin.msg(p, "&aFight: &e" + kit.displayName() + " &7| " + diff.color() + diff.displayName()
                 + " &7| arena &e" + arena.name());
         return true;
     }
@@ -91,14 +94,14 @@ public final class SessionManager {
         if (!p.isOnline()) return;
         switch (result) {
             case WIN -> {
-                p.sendTitle(ChatColor.GREEN + "VYHRAL JSI", ChatColor.GRAY + s.kit().displayName() + " | " + s.difficulty().displayName(), 5, 50, 10);
-                plugin.msg(p, "&aPorazil jsi bota!");
+                p.sendTitle(ChatColor.GREEN + "YOU WON", ChatColor.GRAY + s.kit().displayName() + " | " + s.difficulty().displayName(), 5, 50, 10);
+                plugin.msg(p, "&aYou defeated the bot!");
             }
             case LOSS -> {
-                p.sendTitle(ChatColor.RED + "PROHRAL JSI", ChatColor.GRAY + "Zkus to znovu", 5, 50, 10);
-                plugin.msg(p, "&cBot te porazil.");
+                p.sendTitle(ChatColor.RED + "YOU LOST", ChatColor.GRAY + "Try again", 5, 50, 10);
+                plugin.msg(p, "&cThe bot defeated you.");
             }
-            case LEFT -> plugin.msg(p, "&7Souboj ukoncen.");
+            case LEFT -> plugin.msg(p, "&7Fight ended.");
             default -> { }
         }
     }
@@ -108,23 +111,23 @@ public final class SessionManager {
         showEveryone();
     }
 
-    /** Pokud hrace srazil crash uprostred souboje, vrat mu veci pri dalsim prihlaseni. */
+    /** If a crash hit the player mid-fight, give their items back on the next login. */
     public void restorePending(Player p) {
         File f = new File(plugin.getDataFolder(), "pending/" + p.getUniqueId() + ".yml");
         if (!f.exists() || inSession(p)) return;
         PlayerState st = PlayerState.load(f);
         if (st != null) {
             st.restore(p);
-            plugin.msg(p, "&7Tvuj inventar z prerusene hry byl obnoven.");
+            plugin.msg(p, "&7Your inventory from the interrupted fight was restored.");
         }
         f.delete();
     }
 
-    // ---------- viditelnost ----------
+    // ---------- visibility ----------
 
     /**
-     * Hrac v souboji vidi jen sebe a sveho bota. Ostatni hraci nevidi ani jeho, ani jeho bota.
-     * Hraci mimo souboje se vidi normalne.
+     * A player in a fight sees only themselves and their own bot. Other players see neither
+     * them nor their bot. Players outside fights see each other normally.
      */
     public void refreshVisibility() {
         List<? extends Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());

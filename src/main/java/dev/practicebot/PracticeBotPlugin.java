@@ -4,10 +4,15 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
 
 public final class PracticeBotPlugin extends JavaPlugin {
     private static final String PREFIX = "&8[&cPracticeBot&8] &r";
+    /** Bump this when config.yml changes in an incompatible way. */
+    private static final int CONFIG_VERSION = 2;
 
     private ArenaManager arenas;
     private SessionManager sessions;
@@ -16,11 +21,12 @@ public final class PracticeBotPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         if (Bukkit.getPluginManager().getPlugin("Citizens") == null) {
-            getLogger().severe("Citizens nenalezen! PracticeBot ho potrebuje pro vytvareni bot-hracu.");
+            getLogger().severe("Citizens not found! PracticeBot needs it to create bot players.");
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
-        saveDefaultConfig();
+        migrateConfig();
+        reloadConfig();
         Difficulty.loadAll(getConfig());
 
         arenas = new ArenaManager(this);
@@ -37,14 +43,27 @@ public final class PracticeBotPlugin extends JavaPlugin {
             cmd.setTabCompleter(handler);
         }
 
-        // arény nacist az po nacteni svetu
+        // load arenas only after the worlds are loaded
         Bukkit.getScheduler().runTask(this, () -> arenas.load());
-        getLogger().info("PracticeBot zapnut.");
+        getLogger().info("PracticeBot enabled.");
     }
 
     @Override
     public void onDisable() {
         if (sessions != null) sessions.endAll();
+    }
+
+    /** An outdated config.yml is moved to config-old.yml and a fresh one is generated. */
+    private void migrateConfig() {
+        File f = new File(getDataFolder(), "config.yml");
+        if (f.exists() && YamlConfiguration.loadConfiguration(f).getInt("config-version", 1) < CONFIG_VERSION) {
+            File old = new File(getDataFolder(), "config-old.yml");
+            if (old.exists()) old.delete();
+            if (f.renameTo(old)) {
+                getLogger().warning("Your config.yml was outdated. It was moved to config-old.yml and a new one was generated.");
+            }
+        }
+        saveDefaultConfig();
     }
 
     public ArenaManager arenas() { return arenas; }

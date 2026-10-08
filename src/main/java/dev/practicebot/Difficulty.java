@@ -6,10 +6,10 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
 public enum Difficulty {
-    NORMAL("Normal", Material.LIME_CONCRETE, ChatColor.GREEN, 2.8, 4.0, 0.50, 0.95, 0.3, 0.00, 6.0, 6.0),
-    MEDIUM("Medium", Material.YELLOW_CONCRETE, ChatColor.YELLOW, 3.0, 6.0, 0.65, 1.05, 0.5, 0.00, 7.0, 5.0),
-    HARD("Hard", Material.ORANGE_CONCRETE, ChatColor.GOLD, 3.2, 8.0, 0.80, 1.15, 0.7, 0.01, 8.0, 4.0),
-    PROFESSIONAL("Professional", Material.RED_CONCRETE, ChatColor.RED, 3.4, 11.0, 0.92, 1.25, 0.9, 0.03, 9.0, 3.0);
+    NORMAL("Normal", Material.LIME_CONCRETE, ChatColor.GREEN, 2.8, 4.0, 0.50, 0.85, 0.3, 0.03, 6.0, 6.0),
+    MEDIUM("Medium", Material.YELLOW_CONCRETE, ChatColor.YELLOW, 3.0, 6.0, 0.65, 0.90, 0.5, 0.05, 7.0, 5.0),
+    HARD("Hard", Material.ORANGE_CONCRETE, ChatColor.GOLD, 3.2, 8.0, 0.80, 0.95, 0.7, 0.08, 8.0, 4.0),
+    PROFESSIONAL("Professional", Material.RED_CONCRETE, ChatColor.RED, 3.4, 11.0, 0.92, 1.00, 0.9, 0.12, 9.0, 3.0);
 
     private final String displayName;
     private final Material icon;

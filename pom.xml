@@ -12,7 +12,7 @@
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- Zmen podle verze tveho serveru (Paper API + odpovidajici Citizens) -->
+        <!-- Change to match your server version (Paper API + matching Citizens) -->
         <paper.version>1.21.11-R0.1-SNAPSHOT</paper.version>
         <citizens.version>2.0.43-SNAPSHOT</citizens.version>
     </properties>

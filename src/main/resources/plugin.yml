@@ -2,20 +2,20 @@ name: PracticeBot
 version: ${project.version}
 main: dev.practicebot.PracticeBotPlugin
 api-version: '1.21'
-description: Treninkovy bot, ktery se chova jako hrac. Kity, obtiznosti, areny a izolovane souboje.
+description: Practice bot that behaves like a real player. Kits, difficulties, arenas and isolated fights.
 author: Failxos
 depend: [Citizens]
 
 commands:
   pbot:
-    description: Hlavni prikaz PracticeBotu
+    description: Main PracticeBot command
     aliases: [practicebot, pb]
     usage: /<command> [play|leave|kits|arena|reload]
 
 permissions:
   practicebot.play:
-    description: Pouzivani GUI a /pbot play
+    description: Use the GUI and /pbot play
     default: true
   practicebot.admin:
-    description: Spravce arén a reload
+    description: Manage arenas and reload the plugin
     default: op

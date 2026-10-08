@@ -11,7 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-/** Ulozi stav hrace pred soubojem a po souboji ho vrati. Uklada se i na disk (ochrana pred crashem). */
+/** Saves the player's state before a fight and restores it afterwards. Also saved to disk (crash protection). */
 public final class PlayerState {
     private ItemStack[] contents;
     private ItemStack[] armor;
@@ -87,7 +87,7 @@ public final class PlayerState {
             f.getParentFile().mkdirs();
             y.save(f);
         } catch (IOException e) {
-            throw new RuntimeException("Nelze ulozit stav hrace: " + e.getMessage(), e);
+            throw new RuntimeException("Could not save player state: " + e.getMessage(), e);
         }
     }
 

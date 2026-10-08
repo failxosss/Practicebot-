@@ -1,59 +1,70 @@
 # ===== PracticeBot =====
-# Odpocet pred zacatkem souboje (sekundy)
+# Internal version, do not change. An older config.yml is backed up to config-old.yml automatically.
+config-version: 2
+
+# Countdown before the fight starts (seconds)
 countdown-seconds: 3
 
-# Jmeno bota nad hlavou. Pouzij {difficulty} pro obtiznost. Barvy pres &
+# Name shown above the bot's head. Use {difficulty} for the difficulty. Colors with &
 bot-name: "&cBot &7({difficulty})"
 
-# Skin bota (nick hrace s existujicim skinem). Prazdne = vychozi skin.
+# Bot skin (nickname of a player with an existing skin). Empty = default skin.
 bot-skin: ""
 
-# Prikazy povolene behem souboje (krome /pbot)
+# Commands allowed during a fight (besides /pbot)
 allowed-commands: []
 
-# Ladeni obtiznosti
-#  reach          - na jakou vzdalenost bot utoci (bloky)
-#  cps            - kolikrat za vterinu se bot pokusi udeřit
-#  accuracy       - sance, ze se pokus trefi (0.0 - 1.0)
-#  speed          - rychlost pohybu (1.0 = bezna chuze)
-#  strafe-chance  - sance, ze bot strafuje okolo hrace
-#  jump-chance    - sance na skok (crit) za tick, kdyz je blizko
-#  heal-below     - pod kolik HP se bot leci (NoDebuff/Gapple kit)
-#  heal-cooldown  - pauza mezi leceni (sekundy)
+# Bot movement
+#  bot-sprint              - the bot sprints like a real player (sprint hits give extra knockback)
+#  sprint-speed-multiplier - sprint speed relative to walking (vanilla = 1.3)
+#  bot-chase-jump          - the bot bunny-hops (sprint-jumps) while running toward you
+bot-sprint: true
+sprint-speed-multiplier: 1.3
+bot-chase-jump: true
+
+# Difficulty tuning
+#  reach          - distance from which the bot attacks (blocks)
+#  cps            - how many times per second the bot tries to hit
+#  accuracy       - chance that an attempt connects (0.0 - 1.0)
+#  speed          - walking speed multiplier (sprinting multiplies it by sprint-speed-multiplier)
+#  strafe-chance  - chance that the bot strafes around the player
+#  jump-chance    - chance per tick to jump (when on the ground and off cooldown), in a fight and while chasing
+#  heal-below     - HP below which the bot heals (NoDebuff/Gapple kit)
+#  heal-cooldown  - pause between heals (seconds)
 difficulties:
   NORMAL:
     reach: 2.8
     cps: 4.0
     accuracy: 0.50
-    speed: 0.95
+    speed: 0.85
     strafe-chance: 0.3
-    jump-chance: 0.0
+    jump-chance: 0.03
     heal-below: 6.0
     heal-cooldown: 6.0
   MEDIUM:
     reach: 3.0
     cps: 6.0
     accuracy: 0.65
-    speed: 1.05
+    speed: 0.90
     strafe-chance: 0.5
-    jump-chance: 0.0
+    jump-chance: 0.05
     heal-below: 7.0
     heal-cooldown: 5.0
   HARD:
     reach: 3.2
     cps: 8.0
     accuracy: 0.80
-    speed: 1.15
+    speed: 0.95
     strafe-chance: 0.7
-    jump-chance: 0.01
+    jump-chance: 0.08
     heal-below: 8.0
     heal-cooldown: 4.0
   PROFESSIONAL:
     reach: 3.4
     cps: 11.0
     accuracy: 0.92
-    speed: 1.25
+    speed: 1.00
     strafe-chance: 0.9
-    jump-chance: 0.03
+    jump-chance: 0.12
     heal-below: 9.0
     heal-cooldown: 3.0
